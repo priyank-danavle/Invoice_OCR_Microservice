@@ -1,0 +1,25 @@
+services:
+  ocr-microservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ocr-microservice
+    image: ocr-microservice:latest
+    network_mode: "host"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001", "--workers", "2", "--log-level", "info", "--access-log", "--root-path", "/ocr-api"]
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

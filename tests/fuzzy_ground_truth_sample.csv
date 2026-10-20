@@ -1,0 +1,16 @@
+raw,master,client_id,expected_id,expected_label,notes
+Reliance Industries,supplier,1,42,Reliance Industries Ltd,exact spelling
+Reliance Inds.,supplier,1,42,Reliance Industries Ltd,abbreviation with dot
+Reliance Ind,supplier,1,42,Reliance Industries Ltd,truncated
+RELIANCE INDUSTRIES,supplier,1,42,Reliance Industries Ltd,all caps
+Blue Dart,transport,1,7,Blue Dart Express Ltd,common name only
+Blue Dart Exp,transport,1,7,Blue Dart Express Ltd,partial
+DTDC Courier,transport,1,11,DTDC Ltd,common name
+kg,unit,1,3,kg,exact
+kgs,unit,1,3,kg,synonym
+kilogram,unit,1,3,kg,synonym long form
+Mtrs,unit,1,5,m,synonym with caps
+Glossy,design,1,18,Glossy,exact
+Glossy Design,design,1,18,Glossy,extra word
+GREEN(7),color,1,55,Green(7),exact with bracket
+Green 7,color,1,55,Green(7),space instead of bracket

@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FabricDeliveryChallan",
+  "description": "Extracted data schema from a Fabric Delivery Challan document",
+  "type": "object",
+  "required": ["basic_details", "line_items"],
+  "properties": {
+
+    "basic_details": {
+      "type": "object",
+      "description": "Header-level information from the challan",
+      "required": [
+        "supplier_name",
+        "supplier_challan_no",
+        "supplier_challan_date"
+      ],
+      "properties": {
+        "supplier_name": {
+          "type": ["string", "null"],
+          "description": "Name of the supplying company issuing the challan"
+        },
+        "transporter_name": {
+          "type": ["string", "null"],
+          "description": "Name of the transport company or SELF"
+        },
+        "transport_lr_no": {
+          "type": ["string", "null"],
+          "description": "LR number assigned by the transporter"
+        },
+        "lr_vehicle_name": {
+          "type": ["string", "null"],
+          "description": "Vehicle or LR name used for transport"
+        },
+        "lr_vehicle_date": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Date of LR/vehicle dispatch (YYYY-MM-DD)"
+        },
+        "dispatch_from_delivery_address": {
+          "type": ["string", "null"],
+          "description": "Full address from which goods are dispatched"
+        },
+        "address": {
+          "type": ["string", "null"],
+          "description": "Delivery / consignee address"
+        },
+        "supplier_challan_no": {
+          "type": ["string", "null"],
+          "description": "Unique challan number printed on the document"
+        },
+        "supplier_challan_date": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Date of the challan (YYYY-MM-DD)"
+        },
+        "supplier_invoice_no": {
+          "type": ["string", "null"],
+          "description": "Invoice number if mentioned on challan"
+        },
+        "supplier_invoice_date": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Invoice date if mentioned (YYYY-MM-DD)"
+        },
+        "no_of_cartons_in_challan": {
+          "type": ["integer", "null"],
+          "description": "Number of parcels/cartons as per challan"
+        },
+        "no_of_cartons_received": {
+          "type": ["integer", "null"],
+          "description": "Actual number of cartons received (filled at inward)"
+        },
+        "no_of_pieces_in_challan": {
+          "type": ["integer", "null"],
+          "description": "Total number of pieces/rolls mentioned in challan"
+        },
+        "no_of_pieces_received": {
+          "type": ["integer", "null"],
+          "description": "Actual pieces/rolls received (filled at inward)"
+        },
+        "on_packing": {
+          "type": ["string", "null"],
+          "enum": ["Yes", "No", null],
+          "description": "Whether packing slip is attached"
+        },
+        "lot_no": {
+          "type": ["string", "null"],
+          "description": "Lot number if mentioned"
+        },
+        "challan_qty": {
+          "type": ["number", "null"],
+          "description": "Total quantity as per challan"
+        },
+        "unit": {
+          "type": ["string", "null"],
+          "description": "Unit of measurement e.g. Mtr, Kg, Pcs"
+        },
+        "inward_pending_tags": {
+          "type": ["string", "null"],
+          "description": "Inward pending tag type e.g. Piece-Wise"
+        },
+        "remarks": {
+          "type": ["string", "null"],
+          "description": "Remarks or notes printed on the challan"
+        },
+        "special_instruction": {
+          "type": ["string", "null"],
+          "description": "Any special instructions printed on the challan"
+        },
+        "factory_purchase_order": {
+          "type": ["string", "null"],
+          "description": "Purchase order / order number referenced in the challan"
+        },
+        "inward_type": {
+          "type": ["integer", "null"],
+          "enum": [1, 2, 3, null],
+          "description": "Inward classification type: 1 (Normal), 2 (third party), or 3 (branch transfer)"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "line_items": {
+      "type": "array",
+      "description": "One entry per roll/item row in the Dispatch Details table",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["sr_no", "description_of_goods", "supplier_qty", "primary_unit"],
+        "properties": {
+          "sr_no": {
+            "type": ["integer", "null"],
+            "description": "Serial number of the line item"
+          },
+          "roll_no": {
+            "type": ["string", "null"],
+            "description": "Roll number for the fabric piece"
+          },
+          "description_of_goods": {
+            "type": ["string", "null"],
+            "description": "Full raw description string as printed on challan"
+          },
+          "quality_master": {
+            "type": ["string", "null"],
+            "description": "Fabric quality name parsed from description"
+          },
+          "design_master": {
+            "type": ["string", "null"],
+            "description": "Design/print type parsed from description"
+          },
+          "client_master": {
+            "type": ["string", "null"],
+            "description": "Client/buyer name"
+          },
+          "color_master": {
+            "type": ["string", "null"],
+            "description": "Color parsed from description"
+          },
+          "supplier_quality": {
+            "type": ["string", "null"],
+            "description": "Supplier's own quality label if different"
+          },
+          "supplier_qty": {
+            "type": ["number", "null"],
+            "description": "Quantity for this line item as per challan"
+          },
+          "primary_unit": {
+            "type": ["string", "null"],
+            "description": "Unit for this line item e.g. Mtr, Kg, Pcs"
+          },
+          "rate_per_unit": {
+            "type": ["number", "null"],
+            "description": "Rate per unit if printed"
+          },
+          "po_rate": {
+            "type": ["number", "null"],
+            "description": "Purchase order rate"
+          },
+          "discount_percent": {
+            "type": ["number", "null"],
+            "description": "Discount percentage on this item"
+          },
+          "po_discount": {
+            "type": ["number", "null"],
+            "description": "PO-level discount amount"
+          },
+          "hsn": {
+            "type": ["string", "null"],
+            "description": "HSN code for the item"
+          },
+          "igst": {
+            "type": ["number", "null"],
+            "description": "IGST percentage"
+          },
+          "cgst": {
+            "type": ["number", "null"],
+            "description": "CGST percentage"
+          },
+          "sgst": {
+            "type": ["number", "null"],
+            "description": "SGST percentage"
+          },
+          "freight_rate": {
+            "type": ["number", "null"],
+            "description": "Freight rate for this item"
+          },
+          "freight_amount": {
+            "type": ["number", "null"],
+            "description": "Calculated freight amount"
+          },
+          "actual_freight_amount": {
+            "type": ["number", "null"],
+            "description": "Actual freight amount charged"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "description": "Totals from the Summary Details table on the challan",
+      "properties": {
+        "total_pieces_rolls": {
+          "type": ["integer", "null"],
+          "description": "Total number of pieces or rolls"
+        },
+        "total_quantity": {
+          "type": ["number", "null"],
+          "description": "Grand total quantity across all line items"
+        },
+        "total_unit": {
+          "type": ["string", "null"],
+          "description": "Unit for total quantity"
+        }
+      },
+      "additionalProperties": false
+    }
+
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OCR Invoice Reader — Stepped Workflow</title>
+<meta name="description" content="Upload, review and process invoices with AI-powered OCR and exact entity matching against ERP master data."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c18;--surface:#0f1628;--surface2:#161e35;--surface3:#1e2a45;
+  --border:#ffffff10;--border2:#ffffff18;
+  --accent:#6366f1;--accent2:#8b5cf6;--accent-glow:#6366f140;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:
+    radial-gradient(ellipse at 15% 0%,#6366f118 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 100%,#8b5cf618 0%,transparent 55%)}
+header{
+  padding:18px 32px;border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;gap:14px;
+  background:rgba(15,22,40,0.9);backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:100}
+.logo{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 20px var(--accent-glow)}
+header h1{font-size:17px;font-weight:700;letter-spacing:-0.4px}
+.header-badge{font-size:11px;color:var(--muted2);background:var(--surface2);
+  padding:3px 10px;border-radius:20px;border:1px solid var(--border2)}
+.header-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.wizard-bar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;align-items:stretch}
+.step-item{
+  display:flex;align-items:center;gap:10px;padding:14px 22px;
+  position:relative;transition:all .2s}
+.step-item:not(:last-child)::after{
+  content:'›';position:absolute;right:-4px;top:50%;transform:translateY(-50%);
+  color:var(--border2);font-size:20px;font-weight:300;z-index:1}
+.step-num{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
+  background:var(--surface2);border:2px solid var(--border2);color:var(--muted);
+  transition:all .3s}
+.step-label{font-size:12.5px;font-weight:500;color:var(--muted);transition:all .3s}
+.step-sublabel{font-size:10.5px;color:var(--muted);margin-top:1px;transition:all .3s}
+.step-item.active .step-num{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 12px var(--accent-glow)}
+.step-item.active .step-label{color:var(--text)}
+.step-item.active .step-sublabel{color:var(--muted2)}
+.step-item.done .step-num{background:var(--green);border-color:var(--green);color:#fff}
+.step-item.done .step-label{color:var(--muted2)}
+.app-body{display:flex;height:calc(100vh - 115px);overflow:hidden}
+.sidebar{
+  width:340px;flex-shrink:0;background:var(--surface);
+  border-right:1px solid var(--border);overflow-y:auto;
+  display:flex;flex-direction:column}
+.sidebar-section{padding:18px 22px;border-bottom:1px solid var(--border)}
+.section-title{
+  font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section-title span{width:4px;height:4px;border-radius:50%;background:var(--accent);display:inline-block}
+.field-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field-group:last-child{margin-bottom:0}
+label{font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:.3px}
+input[type=text],input[type=number],textarea,select{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius-sm);color:var(--text);padding:8px 12px;
+  font-size:13px;font-family:'Inter',sans-serif;
+  transition:border .2s,box-shadow .2s;outline:none}
+input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #6366f115}
+textarea{resize:vertical;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.dropzone{
+  border:2px dashed var(--border2);border-radius:var(--radius);padding:24px 14px;
+  text-align:center;cursor:pointer;transition:all .25s;position:relative;
+  background:var(--surface2)}
+.dropzone:hover,.dropzone.over{border-color:var(--accent);background:#6366f108}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dropzone .dz-icon{font-size:26px;margin-bottom:7px}
+.dropzone p{font-size:12px;color:var(--muted)}
+.dropzone p strong{color:var(--accent)}
+.file-name-display{
+  margin-top:8px;font-size:12px;color:var(--accent);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:#6366f112;padding:3px 10px;border-radius:6px;display:none}
+.btn{
+  padding:10px 16px;border:none;border-radius:var(--radius-sm);
+  font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:all .2s;font-family:'Inter',sans-serif;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;width:100%;
+  box-shadow:0 4px 14px var(--accent-glow)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 22px var(--accent-glow)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-success{background:linear-gradient(135deg,#059669,#10b981);color:#fff;width:100%;
+  box-shadow:0 4px 14px #10b98130}
+.btn-success:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 22px #10b98140}
+.btn-success:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{background:var(--surface2);color:var(--muted2);border:1px solid var(--border2);font-size:12px;padding:6px 12px}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted2);font-size:12px;padding:8px 14px}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.spinner{width:14px;height:14px;border:2px solid #fff4;border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.main-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex-direction:column;height:100%;overflow:hidden}
+.panel.active{display:flex}
+#panel-step1{align-items:center;justify-content:center}
+.step1-prompt{text-align:center;max-width:420px;padding:32px}
+.step1-prompt .big-icon{font-size:58px;margin-bottom:14px}
+.step1-prompt h2{font-size:22px;font-weight:700;margin-bottom:10px;letter-spacing:-0.5px}
+.step1-prompt p{font-size:13.5px;color:var(--muted2);line-height:1.7}
+.hint-card{margin-top:22px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:16px 18px;text-align:left}
+.hint-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.hint-row:last-child{margin-bottom:0}
+.hint-step{width:22px;height:22px;border-radius:50%;background:var(--accent);
+  color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:1px}
+.hint-text{font-size:12px;color:var(--muted2);line-height:1.55}
+#panel-step2{overflow:hidden}
+.step2-toolbar{
+  padding:12px 22px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.step2-toolbar h2{font-size:13.5px;font-weight:600}
+.chip{border-radius:20px;padding:3px 10px;font-size:11px}
+.chip-file{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);
+  max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-page{background:var(--surface2);border:1px solid var(--border2);color:var(--muted)}
+.chip-cost{background:#10b98112;border:1px solid #10b98130;color:var(--green)}
+.step2-body{flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 1fr}
+.step2-pane{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+.step2-pane:last-child{border-right:none}
+.pane-header{
+  padding:9px 16px;background:var(--surface2);border-bottom:1px solid var(--border);
+  flex-shrink:0;display:flex;align-items:center;gap:8px}
+.pane-header h3{font-size:11.5px;font-weight:600;color:var(--muted2)}
+.pane-badge{margin-left:auto;background:var(--surface);border:1px solid var(--border2);
+  border-radius:20px;padding:2px 8px;font-size:10px;color:var(--muted)}
+.pane-body{flex:1;overflow:auto;padding:12px}
+#ocr-text-editor{
+  width:100%;height:100%;min-height:200px;background:transparent;
+  border:none;outline:none;resize:none;
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);line-height:1.7}
+.schema-area{width:100%;height:100%;min-height:200px}
+.results-toolbar{
+  padding:12px 22px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0;
+  display:flex;align-items:center;gap:10px}
+.results-toolbar h2{font-size:13.5px;font-weight:600}
+.status-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.status-success{background:#10b98120;color:var(--green);border:1px solid #10b98140}
+.status-error{background:#ef444420;color:var(--red);border:1px solid #ef444440}
+.meta-chips{margin-left:auto;display:flex;gap:8px}
+.meta-chip{font-size:11px;color:var(--muted);background:var(--surface2);
+  padding:3px 10px;border-radius:20px;border:1px solid var(--border)}
+.copy-btn{background:var(--surface2);border:1px solid var(--border2);
+  color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tabs-bar{
+  display:flex;gap:2px;padding:9px 20px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0}
+.tab{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;
+  border:1px solid transparent;color:var(--muted);transition:all .15s}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tab:not(.active):hover{background:var(--surface2);color:var(--text)}
+.tab-count{background:#fff2;border-radius:10px;padding:1px 5px;font-size:10px;margin-left:3px}
+.results-body{flex:1;overflow:auto;padding:20px}
+.placeholder-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:10px;color:var(--muted)}
+.placeholder-msg .big{font-size:44px;opacity:.25}
+.placeholder-msg p{font-size:13px}
+.json-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.75;
+  white-space:pre-wrap;word-break:break-word}
+.json-key{color:#93c5fd}.json-str{color:#86efac}.json-num{color:#fda4af}
+.json-bool{color:#c4b5fd}.json-null{color:var(--muted)}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.kv-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kv-card .k{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:5px}
+.kv-card .v{font-size:13px;font-weight:500;font-family:'JetBrains Mono',monospace;word-break:break-all}
+.kv-card .v.null-val{color:var(--muted);font-style:italic;font-size:11px}
+.li-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.li-table th{background:var(--surface2);color:var(--muted);font-weight:600;
+  text-transform:uppercase;font-size:9.5px;letter-spacing:.5px;
+  padding:7px 11px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.li-table td{padding:7px 11px;border-bottom:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text)}
+.li-table tr:hover td{background:#ffffff04}
+.li-table td.null-val{color:var(--muted);font-style:italic}
+.error-card{background:#ef444408;border:1px solid #ef444440;border-radius:var(--radius);padding:20px}
+.err-title{font-size:15px;font-weight:700;color:var(--red);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px}
+.err-msg{font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:14px}
+.err-fields{display:flex;flex-direction:column;gap:6px}
+.error-field-chip{background:#ef444412;border:1px solid #ef444430;border-radius:6px;
+  padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#fca5a5}
+.err-hint{margin-top:14px;font-size:12px;color:var(--muted);
+  background:var(--surface2);border-radius:6px;padding:10px 14px;
+  border-left:3px solid var(--yellow)}
+.back-btn-area{margin-top:16px}
+.fade-in{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍</div>
+  <h1>OCR Invoice Reader</h1>
+  <span class="header-badge">Stepped Workflow v2</span>
+  <div class="header-right">
+    <span class="header-badge" id="api-url-display">localhost:8001</span>
+  </div>
+</header>
+
+<div class="wizard-bar">
+  <div class="step-item active" id="step-indicator-1">
+    <div class="step-num" id="step-num-1">1</div>
+    <div>
+      <div class="step-label">Upload</div>
+      <div class="step-sublabel">Select invoice document</div>
+    </div>
+  </div>
+  <div class="step-item" id="step-indicator-2">
+    <div class="step-num" id="step-num-2">2</div>
+    <div>
+      <div class="step-label">Review OCR Text</div>
+      <div class="step-sublabel">Correct extracted text</div>
+    </div>
+  </div>
+  <div class="step-item" id="step-indicator-3">
+    <div class="step-num" id="step-num-3">3</div>
+    <div>
+      <div class="step-label">Results</div>
+      <div class="step-sublabel">Matched entities</div>
+    </div>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-title"><span></span>Connection</div>
+      <div class="field-group">
+        <label>API Base URL</label>
+        <input type="text" id="api-url" value="http://localhost:8001" placeholder="https://ocr.yourcompany.com"/>
+      </div>
+      <div class="field-group">
+        <label>X-API-Key</label>
+        <input type="text" id="api-key" placeholder="your-microservice-api-key"/>
+      </div>
+      <div class="field-group">
+        <label>Client ID</label>
+        <input type="number" id="client-id" value="1" min="1" placeholder="e.g. 1"/>
+      </div>
+    </div>
+
+    <!-- Step 1: file upload -->
+    <div class="sidebar-section" id="sidebar-upload">
+      <div class="section-title"><span></span>Document</div>
+      <div class="field-group">
+        <label>Invoice File (JPG / PNG / PDF)</label>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.pdf" multiple/>
+          <div class="dz-icon">📄</div>
+          <p>Drop file here or <strong>click to browse</strong></p>
+          <div class="file-name-display" id="file-name-display"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="extract-btn" onclick="doExtract()">
+        <span id="extract-btn-label">Extract OCR Text</span>
+      </button>
+    </div>
+
+    <!-- Step 2+: schema + process -->
+    <div class="sidebar-section" id="sidebar-schema" style="display:none">
+      <div class="section-title" style="display:flex;justify-content:space-between;width:100%">
+        <div style="display:flex;align-items:center;gap:6px"><span></span>Output Schema (JSON)</div>
+        <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="loadExample()">Example</button>
+      </div>
+      <div class="field-group">
+        <textarea id="schema" rows="11" placeholder='{"supplier_name":{"type":"auto_search","master":"supplier"},...}'></textarea>
+      </div>
+      <button class="btn btn-success" id="process-btn" onclick="doProcess()">
+        <span id="process-btn-label">⚡ Process Document</span>
+      </button>
+      <div style="margin-top:8px">
+        <button class="btn btn-outline" style="width:100%;font-size:12px" onclick="resetToStep1()">← Start Over</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Main panels -->
+  <div class="main-content">
+
+    <!-- Panel 1: idle -->
+    <div class="panel active" id="panel-step1">
+      <div class="step1-prompt">
+        <div class="big-icon">🧾</div>
+        <h2>Invoice OCR Workflow</h2>
+        <p>Upload your invoice document. The system will extract raw text via Mistral OCR. You can review and correct it before exact entity matching.</p>
+        <div class="hint-card">
+          <div class="hint-row">
+            <div class="hint-step">1</div>
+            <div class="hint-text">Configure connection settings, upload your invoice, and click <strong>Extract OCR Text</strong></div>
+          </div>
+          <div class="hint-row">
+            <div class="hint-step">2</div>
+            <div class="hint-text">Review and correct the extracted text, set your output schema, then click <strong>Process Document</strong></div>
+          </div>
+          <div class="hint-row">
+            <div class="hint-step">3</div>
+            <div class="hint-text">See results. Any unresolved field shows an error with its name — go back to fix it</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 2: OCR review -->
+    <div class="panel" id="panel-step2">
+      <div class="step2-toolbar">
+        <h2>Review &amp; Edit OCR Text</h2>
+        <span class="chip chip-file" id="step2-file-chip">—</span>
+        <span class="chip chip-page" id="step2-pages-chip">— pages</span>
+        <span class="chip chip-cost" id="step2-cost-chip">$0.0000</span>
+      </div>
+      <div class="step2-body">
+        <div class="step2-pane">
+          <div class="pane-header">
+            <h3>📝 Extracted OCR Text</h3>
+            <span class="pane-badge">Editable — correct OCR errors here</span>
+          </div>
+          <div class="pane-body">
+            <textarea id="ocr-text-editor" spellcheck="false" placeholder="OCR text appears here…"></textarea>
+          </div>
+        </div>
+        <div class="step2-pane">
+          <div class="pane-header">
+            <h3>⚙️ Output Schema (JSON)</h3>
+            <button class="btn btn-ghost" style="margin-left:auto;padding:2px 8px;font-size:10px" onclick="loadExample()">Load Example</button>
+          </div>
+          <div class="pane-body">
+            <textarea id="schema-inline" class="schema-area" spellcheck="false" placeholder='{"supplier_name":{"type":"auto_search","master":"supplier"},...}'></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 3: results -->
+    <div class="panel" id="panel-step3">
+      <div class="results-toolbar">
+        <h2>Results</h2>
+        <span class="status-badge status-success" id="results-badge" style="display:none">Success</span>
+        <div class="meta-chips" id="meta-chips" style="display:none">
+          <span class="meta-chip" id="meta-time">—</span>
+        </div>
+        <button class="copy-btn" id="copy-btn" style="display:none;margin-left:auto" onclick="copyAll()">Copy JSON</button>
+      </div>
+      <div class="tabs-bar" id="tabs-bar" style="display:none">
+        <div class="tab active" id="tab-basic" onclick="switchTab('basic')">Basic Details <span class="tab-count" id="cnt-basic">0</span></div>
+        <div class="tab" id="tab-line" onclick="switchTab('line')">Line Items <span class="tab-count" id="cnt-line">0</span></div>
+        <div class="tab" id="tab-summary" onclick="switchTab('summary')">Summary <span class="tab-count" id="cnt-summary">0</span></div>
+        <div class="tab" id="tab-raw" onclick="switchTab('raw')">Raw JSON</div>
+      </div>
+      <div class="results-body" id="results-body">
+        <div class="placeholder-msg">
+          <div class="big">📋</div>
+          <p>Results will appear here after processing</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentStep = 1;
+let lastResponse = null;
+let currentTab = 'basic';
+
+// URL display sync
+document.getElementById('api-url').addEventListener('input', e => {
+  try { document.getElementById('api-url-display').textContent = new URL(e.target.value).host; }
+  catch { document.getElementById('api-url-display').textContent = e.target.value; }
+});
+
+// File drop
+const dz = document.getElementById('dropzone');
+const fi = document.getElementById('file-input');
+fi.addEventListener('change', () => updateFileName(fi.files));
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (e.dataTransfer.files.length) { fi.files = e.dataTransfer.files; updateFileName(fi.files); }
+});
+function updateFileName(fileList) {
+  const nd = document.getElementById('file-name-display');
+  if (fileList && fileList.length > 0) {
+    nd.textContent = fileList.length === 1
+      ? fileList[0].name
+      : `${fileList.length} files selected`;
+    nd.style.display = 'block';
+  } else {
+    nd.style.display = 'none';
+  }
+}
+
+// Step navigation
+function goToStep(n) {
+  currentStep = n;
+  [1,2,3].forEach(i => {
+    const ind = document.getElementById('step-indicator-' + i);
+    const num = document.getElementById('step-num-' + i);
+    ind.className = 'step-item' + (i < n ? ' done' : (i === n ? ' active' : ''));
+    num.textContent = i < n ? '✓' : i;
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-step' + n).classList.add('active');
+  document.getElementById('sidebar-upload').style.display = n === 1 ? '' : 'none';
+  document.getElementById('sidebar-schema').style.display = n >= 2 ? '' : 'none';
+}
+
+function resetToStep1() {
+  lastResponse = null;
+  document.getElementById('ocr-text-editor').value = '';
+  document.getElementById('results-body').innerHTML =
+    '<div class="placeholder-msg"><div class="big">📋</div><p>Results will appear here after processing</p></div>';
+  document.getElementById('tabs-bar').style.display = 'none';
+  document.getElementById('results-badge').style.display = 'none';
+  document.getElementById('meta-chips').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+  goToStep(1);
+}
+
+// ── Step 1: Extract ──────────────────────────────────────────────────────────
+async function doExtract() {
+  const url    = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  const apiKey = document.getElementById('api-key').value.trim();
+  const cid    = document.getElementById('client-id').value.trim();
+  if (!apiKey)  return alert('Enter X-API-Key');
+  if (!cid || parseInt(cid) < 1) return alert('Client ID must be ≥ 1');
+  if (!fi.files.length) return alert('Select at least one invoice file');
+  setExtractLoading(true);
+  try {
+    const fd = new FormData();
+    for (const f of fi.files) fd.append('file', f);
+    fd.append('client_id', cid);
+    const res = await fetch(`${url}/api/v1/invoice/extract`, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`Extraction failed (${res.status}): ${data.message || data.detail || 'Unknown error'}`);
+      return;
+    }
+    document.getElementById('ocr-text-editor').value = data.raw_text || '';
+    document.getElementById('step2-file-chip').textContent = data.file_name || Array.from(fi.files).map(f=>f.name).join(', ');
+    document.getElementById('step2-pages-chip').textContent = `${data.page_count} page(s)`;
+    document.getElementById('step2-cost-chip').textContent = `$${(data.scan_cost_usd || 0).toFixed(4)}`;
+    const schemaVal = document.getElementById('schema').value;
+    document.getElementById('schema-inline').value = schemaVal;
+    goToStep(2);
+  } catch (err) {
+    alert(`Network error: ${err.message}`);
+  } finally {
+    setExtractLoading(false);
+  }
+}
+function setExtractLoading(on) {
+  const btn = document.getElementById('extract-btn');
+  document.getElementById('extract-btn-label').innerHTML =
+    on ? '<div class="spinner"></div> Extracting…' : 'Extract OCR Text';
+  btn.disabled = on;
+}
+
+// ── Step 2: Process ──────────────────────────────────────────────────────────
+async function doProcess() {
+  const url     = document.getElementById('api-url').value.trim().replace(/\/$/, '');
+  const apiKey  = document.getElementById('api-key').value.trim();
+  const cid     = document.getElementById('client-id').value.trim();
+  const rawText = document.getElementById('ocr-text-editor').value;
+  const schema  = (document.getElementById('schema-inline').value.trim() ||
+                   document.getElementById('schema').value.trim());
+  if (!apiKey) return alert('Enter X-API-Key');
+  if (!cid || parseInt(cid) < 1) return alert('Client ID must be ≥ 1');
+  if (!rawText.trim()) return alert('OCR text is empty');
+  if (!schema) return alert('Paste or load an output schema');
+  try { JSON.parse(schema); } catch { return alert('Output schema is not valid JSON'); }
+  document.getElementById('schema').value = schema;
+  document.getElementById('schema-inline').value = schema;
+  setProcessLoading(true);
+  const t0 = Date.now();
+  goToStep(3);
+  document.getElementById('results-body').innerHTML =
+    '<div class="placeholder-msg"><div class="big" style="font-size:36px">⚙️</div><p>Processing document…</p></div>';
+  document.getElementById('tabs-bar').style.display = 'none';
+  document.getElementById('results-badge').style.display = 'none';
+  document.getElementById('meta-chips').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+  try {
+    const fd = new FormData();
+    fd.append('raw_text', rawText);
+    fd.append('client_id', cid);
+    fd.append('output_schema', schema);
+    const res = await fetch(`${url}/api/v1/invoice/process`, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: fd,
+    });
+    const data = await res.json();
+    const elapsed = Date.now() - t0;
+    if (!res.ok) showProcessError(data, res.status);
+    else showResults(data, elapsed);
+  } catch (err) {
+    showProcessError({ error: 'network_error', message: err.message }, 0);
+  } finally {
+    setProcessLoading(false);
+  }
+}
+function setProcessLoading(on) {
+  const btn = document.getElementById('process-btn');
+  document.getElementById('process-btn-label').innerHTML =
+    on ? '<div class="spinner"></div> Processing…' : '⚡ Process Document';
+  btn.disabled = on;
+}
+
+// Results display
+function showResults(data, elapsed) {
+  lastResponse = data;
+  const badge = document.getElementById('results-badge');
+  badge.className = 'status-badge status-success';
+  badge.textContent = 'Success';
+  badge.style.display = '';
+  document.getElementById('meta-time').textContent = `⏱ ${elapsed}ms`;
+  document.getElementById('meta-chips').style.display = 'flex';
+  document.getElementById('copy-btn').style.display = '';
+  const bd = data.basic_details || {};
+  const li = data.line_items || [];
+  const sm = data.summary || {};
+  document.getElementById('cnt-basic').textContent = Object.keys(bd).length;
+  document.getElementById('cnt-line').textContent = li.length;
+  document.getElementById('cnt-summary').textContent = Object.keys(sm).length;
+  document.getElementById('tabs-bar').style.display = 'flex';
+  currentTab = 'basic';
+  updateTabActive();
+  renderTab();
+}
+
+function showProcessError(data, status) {
+  const badge = document.getElementById('results-badge');
+  badge.className = 'status-badge status-error';
+  badge.textContent = `Error ${status || ''}`;
+  badge.style.display = '';
+  document.getElementById('tabs-bar').style.display = 'none';
+  document.getElementById('meta-chips').style.display = 'none';
+  document.getElementById('copy-btn').style.display = 'none';
+  const body = document.getElementById('results-body');
+  if (data.error === 'entity_not_found' || data.unresolved_fields) {
+    const fields = data.unresolved_fields || [];
+    const chips  = fields.map(f => `<div class="error-field-chip">✗ ${esc(f)}</div>`).join('');
+    body.innerHTML = `
+      <div class="error-card fade-in">
+        <div class="err-title">⚠️ Entity Match Failed</div>
+        <div class="err-msg">${esc(data.message || 'One or more fields could not be matched exactly.')}</div>
+        ${fields.length ? `<div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Unresolved Fields (${fields.length})</div><div class="err-fields">${chips}</div>` : ''}
+        <div class="err-hint">💡 Go back to <strong>Step 2</strong>, correct the OCR text for the listed fields, and resubmit.</div>
+        <div class="back-btn-area">
+          <button class="btn btn-outline" onclick="goToStep(2)">← Back to Review</button>
+        </div>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div class="error-card fade-in">
+        <div class="err-title">❌ ${status ? 'HTTP ' + status : 'Error'}</div>
+        <div class="err-msg">${esc(data.message || data.detail || 'An unexpected error occurred.')}</div>
+        <div class="json-block" style="margin-top:12px">${syntaxHL(JSON.stringify(data,null,2))}</div>
+        <div class="back-btn-area">
+          <button class="btn btn-outline" onclick="goToStep(2)">← Back to Review</button>
+        </div>
+      </div>`;
+  }
+}
+
+// Tabs
+function switchTab(tab) {
+  currentTab = tab;
+  updateTabActive();
+  renderTab();
+}
+function updateTabActive() {
+  ['basic','line','summary','raw'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('active', t === currentTab);
+  });
+}
+function renderTab() {
+  if (!lastResponse) return;
+  const body = document.getElementById('results-body');
+  if (currentTab === 'raw') {
+    body.innerHTML = `<div class="json-block fade-in">${syntaxHL(JSON.stringify(lastResponse,null,2))}</div>`;
+  } else if (currentTab === 'basic') {
+    body.innerHTML = renderKV(lastResponse.basic_details || {});
+  } else if (currentTab === 'summary') {
+    body.innerHTML = renderKV(lastResponse.summary || {});
+  } else if (currentTab === 'line') {
+    body.innerHTML = renderTable(lastResponse.line_items || []);
+  }
+}
+
+function renderKV(obj) {
+  const entries = Object.entries(obj);
+  if (!entries.length)
+    return `<div class="placeholder-msg"><div class="big">🗂</div><p>No data</p></div>`;
+  return `<div class="kv-grid fade-in">` + entries.map(([k,v]) => {
+    let display = v;
+    if (v !== null && typeof v === 'object') display = JSON.stringify(v);
+    const isNull = v === null || v === undefined;
+    return `<div class="kv-card"><div class="k">${esc(k)}</div>` +
+      `<div class="v ${isNull?'null-val':''}">${isNull?'null':esc(String(display))}</div></div>`;
+  }).join('') + `</div>`;
+}
+
+function renderTable(rows) {
+  if (!rows || !rows.length)
+    return `<div class="placeholder-msg"><div class="big">📋</div><p>No line items</p></div>`;
+  const cols = [...new Set(rows.flatMap(r => Object.keys(r)))];
+  const head = `<tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`;
+  const body = rows.map(r =>
+    `<tr>${cols.map(c => {
+      let v = r[c];
+      if (v !== null && typeof v === 'object') v = JSON.stringify(v);
+      const isNull = v === null || v === undefined;
+      return `<td class="${isNull?'null-val':''}">${isNull?'—':esc(String(v))}</td>`;
+    }).join('')}</tr>`
+  ).join('');
+  return `<div style="overflow:auto" class="fade-in"><table class="li-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function loadExample() {
+  const val = JSON.stringify({
+    "supplier_name":{"type":"auto_search","master":"supplier"},
+    "supplier_challan_no":{"type":"direct"},
+    "supplier_challan_date":{"type":"direct"},
+    "transporter_name":{"type":"auto_search","master":"transport"},
+    "challan_qty":{"type":"direct"},
+    "unit":{"type":"direct"},
+    "line_items":{"type":"line_items","item_fields":{
+      "sr_no":"number","description_of_goods":"text",
+      "quality_master":{"master":"quality"},"color_master":{"master":"color"},
+      "supplier_qty":"number","primary_unit":"text"
+    }},
+    "total_quantity":{"type":"direct","section":"summary"},
+    "total_unit":{"type":"direct","section":"summary"}
+  }, null, 2);
+  document.getElementById('schema').value = val;
+  document.getElementById('schema-inline').value = val;
+}
+
+function syntaxHL(json) {
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\"(\\u[0-9a-fA-F]{4}|\\[^u]|[^\\"])*\"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      if (/^"/.test(m)) return /:$/.test(m)?`<span class="json-key">${m}</span>`:`<span class="json-str">${m}</span>`;
+      if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
+      if (/null/.test(m)) return `<span class="json-null">${m}</span>`;
+      return `<span class="json-num">${m}</span>`;
+    });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyAll() {
+  if (!lastResponse) return;
+  navigator.clipboard.writeText(JSON.stringify(lastResponse, null, 2))
+    .then(() => {
+      const b = document.getElementById('copy-btn');
+      b.textContent = 'Copied!';
+      setTimeout(() => b.textContent = 'Copy JSON', 2000);
+    });
+}
+
+// Keep schema textareas in sync
+document.getElementById('schema').addEventListener('input', e => {
+  document.getElementById('schema-inline').value = e.target.value;
+});
+document.getElementById('schema-inline').addEventListener('input', e => {
+  document.getElementById('schema').value = e.target.value;
+});
+</script>
+</body>
+</html>
